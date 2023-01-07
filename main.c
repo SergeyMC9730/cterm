@@ -7,6 +7,9 @@
 #include "./api.h"
 #include <dirent.h>
 #include <string.h>
+#include <errno.h>
+#include <signal.h>
+#include <unistd.h>
 
 cJSON *__main_config_parsed;
 FILE *__main_config_stream;
@@ -16,9 +19,11 @@ int total_commands = 0;
 int __main_console_y = 0;
 char *logData = NULL;
 
+bool inEInit = false;
+
 cterm_command_reference_t find_command(char *command) {
     int i = 0;
-    cterm_command_reference_t found0;
+    cterm_command_reference_t found0 = {0, 0, 0, 0};
     while(i < total_commands) {
         refresh();
         if(!strcmp(command, cterm_info.commands[i].command)) {
@@ -62,13 +67,32 @@ int __embed_func2() {
     wclear(stdscr);
 }
 
+void system_shutdown() {
+    endwin();
+    cJSON_Delete(__main_config_parsed);
+    exit(0);
+}
+
+void critical_sigsegv(int sig, siginfo_t *si, void *unused) {
+    endwin();
+    cJSON_Delete(__main_config_parsed);
+    
+    if(!inEInit) {
+        printf("External CTerm module failed execution with: SIGSEGV.\n");
+    } else {
+        printf("CTerm init failed execution with: SIGSEGV.\n");
+    }
+
+    exit(0);
+}
+
 cterm_module_t load_module(const char *file, const char *init_function) {
     void *cmd_handler = NULL;
     char *cmd_error = NULL;
     cterm_module_t mod;
     mod.handler = cmd_handler;
     mod.error = cmd_error;
-    cmd_handler = dlopen(file, RTLD_LAZY);
+    cmd_handler = dlopen(file, RTLD_NOW);
     if(cmd_handler != NULL) {
         void (*app_init)(cterm_t *ctrm);
         dlerror();
@@ -143,6 +167,7 @@ bool __main_early() {
     cterm_info.command_size = &total_commands;
     cterm_info.commands = (cterm_command_t *)malloc(1 * sizeof(cterm_command_t));
     cterm_info.find = find_command;
+    cterm_info.system_shutdown = system_shutdown;
     cterm_info.config_instance = __main_config_parsed;
     cterm_info.embedded.e_cJSON_Delete = cJSON_Delete;
     cterm_info.embedded.e_getchar = getchar;
@@ -163,6 +188,14 @@ bool __main_early() {
 uint8_t run_by_main = 128;
 
 int main() {
+    inEInit = true;
+
+    struct sigaction csigsegv;
+    csigsegv.sa_handler = critical_sigsegv;
+    sigemptyset(&csigsegv.sa_mask);
+    csigsegv.sa_flags = 0;
+    sigaction(SIGSEGV, &csigsegv, NULL);
+
     if(!__main_early()) {
         free(cterm_info.commands);
         return 1;
@@ -172,10 +205,12 @@ int main() {
     sprintf(tmp, "Welcome to %s\n", cterm_info.version);
     strcat(logData, tmp);
     free(tmp);
+
     cterm_command_reference_t logcmd = find_command("extension_logfile");
     if(logcmd.callback) logcmd.callback(logData); 
 
     cterm_command_reference_t linecmd = find_command("line");
+    inEInit = false;
     if(!linecmd.callback) {
         cJSON_Delete(__main_config_parsed);
         endwin();

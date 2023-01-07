@@ -34,9 +34,13 @@ typedef struct {
     char *error;
 } cterm_module_t;
 typedef struct {
+    void (*log)(const char *format, ...);
+} cterm_internal_logger_t;
+typedef struct {
     char *version;
     void (* register_command)(char *command, char *helpdesc, bool helpHide, bool (* callback)(void *custom));
     void (* load_module)(const char *file, const char *init_function);
+    void (* system_shutdown)();
     cterm_command_reference_t (* find)(char *command);
     int *terminal_y;
     cterm_command_t *commands;

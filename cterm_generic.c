@@ -1,6 +1,7 @@
 #include "./api.h"
 #include <curses.h>
 #include <stdlib.h>
+#include <string.h>
 
 cterm_t *cterm;
 cterm_embed_t efun;
@@ -9,7 +10,7 @@ char buffer[256];
 int line_x = 0;
 
 bool cmd_hello(void *args) {
-    efun.e_printw("Hello, World!");
+    efun.e_printw("Hello, World!\n");
     efun.e_move(++*cterm->terminal_y, 0);
     efun.e_refresh();
     return true;
@@ -27,6 +28,7 @@ bool cmd_line(void *args) {
     efun.e_move(*cterm->terminal_y, line_x);
     goto cmdline_start;
     cmdline_start:
+        memset(buffer, 0, 255);
         if(false) {
             efun.e_clear();
             *cterm->terminal_y = 0;
@@ -100,11 +102,13 @@ bool cmd_line(void *args) {
     return true;
 }
 bool cmd_quit(void *args) {
-    efun.e_endwin();
-    efun.e_cJSON_Delete(cterm->config_instance);
-    exit(0);
+    cterm->system_shutdown();
     return true;
 }
+bool cmd_exit(void *args) {
+    return cmd_quit(args);
+}
+
 bool cmd_help(void *args) {
     int jj = 0;
     int jp = 0;
@@ -124,9 +128,10 @@ bool cmd_help(void *args) {
 void init(cterm_t *info) {
     cterm = info;
     efun = cterm->embedded;
-    info->register_command("hello", "Hello, World!", false ,cmd_hello);
+    info->register_command("hello", "Hello, World!", false, cmd_hello);
     info->register_command("line", "Command Line", false, cmd_line);
     info->register_command("quit", "Quit Command", false, cmd_quit);
+    info->register_command("exit", "Synonim for quit command", false, cmd_quit);
     info->register_command("help", "Help Command", false, cmd_help);
     return;
 }

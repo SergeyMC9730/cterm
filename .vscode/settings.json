@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "*.tcc": "c",
+        "memory_resource": "c",
+        "memory": "c",
+        "istream": "c",
+        "ostream": "c",
+        "streambuf": "c",
+        "algorithm": "c",
+        "deque": "c",
+        "api.h": "c"
+    }
+}
