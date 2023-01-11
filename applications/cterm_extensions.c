@@ -45,3 +45,5 @@ void init(cterm_t *info) {
     info->register_command("extension_logfile", "EXTENSION: Logger", true, ext_log);
     return;
 }
+
+SET_INFORMATION("cterm_extensions", "Extensions", "1.2")

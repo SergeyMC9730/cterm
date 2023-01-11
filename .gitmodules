@@ -1,3 +1,6 @@
 [submodule "cJSON"]
 	path = cJSON
 	url = https://github.com/DaveGamble/cJSON.git
+[submodule "cmake-examples"]
+	path = cmake-examples
+	url = https://gitlab.com/jhamberg/cmake-examples.git

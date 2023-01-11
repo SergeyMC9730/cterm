@@ -4,12 +4,13 @@
 #include <stdbool.h>
 #include "./main.h"
 #include <dlfcn.h>
-#include "./api.h"
+#include "./applications/api.h"
 #include <dirent.h>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
+#include "config_json.h"
 
 cJSON *__main_config_parsed;
 FILE *__main_config_stream;
@@ -77,6 +78,8 @@ void critical_sigsegv(int sig, siginfo_t *si, void *unused) {
     endwin();
     cJSON_Delete(__main_config_parsed);
     
+    printf(logData);
+
     if(!inEInit) {
         printf("External CTerm module failed execution with: SIGSEGV.\n");
     } else {
@@ -92,15 +95,18 @@ cterm_module_t load_module(const char *file, const char *init_function) {
     cterm_module_t mod;
     mod.handler = cmd_handler;
     mod.error = cmd_error;
-    cmd_handler = dlopen(file, RTLD_NOW);
+    char *tmp = (char *)malloc(1024);
+    sprintf(tmp, "./applications/%s", file);
+    cmd_handler = dlopen(tmp, RTLD_NOW);
+    free(tmp);
+    cmd_error = dlerror();
     if(cmd_handler != NULL) {
         void (*app_init)(cterm_t *ctrm);
-        dlerror();
         app_init = (void (*)(cterm_t *ctrm))dlsym(cmd_handler, init_function);
         cmd_error = dlerror();
         if(cmd_error) {
             printw("%s error: %s", file, cmd_error);
-            char *tmp = (char *)malloc(1024);
+            tmp = (char *)malloc(1024);
             sprintf(tmp, "%s error: %s\n", file, cmd_error);
             strcat(logData, tmp);
             free(tmp);
@@ -112,7 +118,7 @@ cterm_module_t load_module(const char *file, const char *init_function) {
         } else {
             (*app_init)(&cterm_info);
             printw("* Loaded %s", file);
-            char *tmp = (char *)malloc(1024);
+            tmp = (char *)malloc(1024);
             sprintf(tmp, "* Loaded %s\n", file);
             strcat(logData, tmp);
             free(tmp);
@@ -128,21 +134,7 @@ cterm_module_t load_module(const char *file, const char *init_function) {
 bool __main_early() {
     logData = (char *)malloc(8 * 1024);
     initscr();
-    printw("Reading config.json...\n");
-    strcat(logData, "Reading config.json...\n");
-    move(++__main_console_y, 0);
-    refresh();
-    __main_config_stream = fopen("./config.json", "r");
-    if(!__main_config_stream) {
-        endwin();
-        printf("config.json not found!\n");
-        return false;
-    }
-    uint8_t byte = 0;
-    int i = 0;
-    char *unused_var0 = fgets(__main_config_data, 8192, __main_config_stream);
-    fclose(__main_config_stream);
-    __main_config_parsed = cJSON_Parse(__main_config_data);
+    __main_config_parsed = cJSON_ParseWithLength(config_json_data, config_json_size);
     cJSON *entry_cterm = cJSON_GetObjectItemCaseSensitive(__main_config_parsed, "cterm");
     cterm_info.version = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(entry_cterm, "version"));
     if(!cterm_info.version) {
@@ -214,6 +206,7 @@ int main() {
     if(!linecmd.callback) {
         cJSON_Delete(__main_config_parsed);
         endwin();
+        printf(logData);
         printf("Unable to find line command!\n");
         strcat(logData, "Unable to find line command!\n");
         cterm_command_reference_t logcmd = find_command("extension_logfile");

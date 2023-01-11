@@ -47,3 +47,5 @@ void init(cterm_t *info) {
     info->register_command("CTERM_test01", "CTerm Test 01 (Hide/Show)", true, cmd_test01);
     return;
 }
+
+SET_INFORMATION("cterm_tests", "Test commands", "1.2")

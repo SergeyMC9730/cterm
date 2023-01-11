@@ -8,6 +8,8 @@
         "streambuf": "c",
         "algorithm": "c",
         "deque": "c",
-        "api.h": "c"
+        "api.h": "c",
+        "main.h": "c",
+        "cjson.h": "c"
     }
 }

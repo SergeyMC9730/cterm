@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include "cJSON/cJSON.h"
 #include <curses.h>
 
 #pragma pack(1)
@@ -18,7 +17,7 @@ typedef struct {
     bool *helpHide;
 } cterm_command_reference_t;
 typedef struct {
-    void (*e_cJSON_Delete)(cJSON *item);
+    void (*e_cJSON_Delete)(void *item);
     int (*e_printw)(const char *format, ...);
     int (*e_refresh)(void);
     int (*e_move)(int y, int x);
@@ -45,7 +44,9 @@ typedef struct {
     int *terminal_y;
     cterm_command_t *commands;
     int *command_size;
-    cJSON *config_instance;
+    void *config_instance;
     cterm_embed_t embedded;
 } cterm_t;
 #pragma pop()
+
+#define SET_INFORMATION(name, description, version) const char *get_module_name() { return name; } const char *get_module_description() { return description; } const char *get_module_version() { return version; }

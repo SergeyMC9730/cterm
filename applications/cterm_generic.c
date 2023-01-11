@@ -135,3 +135,5 @@ void init(cterm_t *info) {
     info->register_command("help", "Help Command", false, cmd_help);
     return;
 }
+
+SET_INFORMATION("cterm_generic", "CTerm basic commands", "1.2")
