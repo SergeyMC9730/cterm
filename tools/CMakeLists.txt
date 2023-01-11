@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(tools VERSION 1.1.0)
+project(cterm_tools VERSION 1.1.0)
 
 add_executable(get_module_name get_module_name.c)
 add_executable(get_module_description get_module_description.c)
