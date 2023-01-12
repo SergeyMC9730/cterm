@@ -25,8 +25,10 @@ bool inEInit = false;
 cterm_command_reference_t find_command(char *command) {
     int i = 0;
     cterm_command_reference_t found0 = {0, 0, 0, 0};
+
+    if(!cterm_info.commands) return found0;
+
     while(i < total_commands) {
-        refresh();
         if(!strcmp(command, cterm_info.commands[i].command)) {
             // found0 = cterm_info.commands[i];
             found0.callback = cterm_info.commands[i].callback;
@@ -46,58 +48,74 @@ void register_command(char *command, char *helpdesc, bool helpHide, bool (*callb
     cterm_info.commands[total_commands - 1].helpdesc = helpdesc;
     cterm_info.commands[total_commands - 1].callback = callback;
     cterm_info.commands[total_commands - 1].helpHide = helpHide;
-    printw("** Registered %s", command);
+    printf("** Registered %s\n", command);
     char *tmp = (char *)malloc(1024);
     sprintf(tmp, "** Registered %s\n", command);
     strcat(logData, tmp);
     free(tmp);
     cterm_command_reference_t logcmd = find_command("extension_logfile");
     if(logcmd.callback) logcmd.callback(logData);    
-    move(++__main_console_y, 0);
-    refresh();
     return;
 }
 
-int __embed_func0() {
-    wrefresh(stdscr);
-}
-int __embed_func1(int x, int y) {
-    wmove(stdscr, y, x);
-}
-int __embed_func2() {
-    wclear(stdscr);
-}
+cterm_module_t *cterm_modules;
+int cterm_modules_i = 0;
 
 void system_shutdown() {
-    endwin();
+    int i = 0;
+    char *tmp = (char *)malloc(1024);
+    cterm_command_reference_t logcmd = find_command("extension_logfile");
+
+    while(i < cterm_modules_i) {
+        // printf("%X\n", cterm_modules[cterm_modules_i].shutdown_handler);
+        if(cterm_modules[i].shutdown_handler) {
+            sprintf(tmp, "Starting shutdown event for %s\n", cterm_modules[i].name);
+            strcat(logData, tmp);
+            if(logcmd.callback) logcmd.callback(logData); 
+            cterm_modules[i].shutdown_handler();
+        }
+        i++;
+    }
+    
+    sprintf(tmp, "Bye!\n");
+    strcat(logData, tmp);
+    if(logcmd.callback) logcmd.callback(logData); 
+
+    i = 0;
+    while(i < cterm_modules_i) {
+        if(cterm_modules[i].handler) dlclose(cterm_modules[i].handler);
+        i++;
+    }
+    
     cJSON_Delete(__main_config_parsed);
+    free(logData);
+    free(cterm_info.commands);
+    free(tmp);
+    free(cterm_modules);
+
     exit(0);
 }
 
 void critical_sigsegv(int sig, siginfo_t *si, void *unused) {
-    endwin();
-    cJSON_Delete(__main_config_parsed);
-    
-    printf(logData);
-
     if(!inEInit) {
-        printf("External CTerm module failed execution with: SIGSEGV.\n");
+        printf("\nExternal CTerm module failed execution with: SIGSEGV.\n");
     } else {
-        printf("CTerm init failed execution with: SIGSEGV.\n");
+        printf("\nCTerm init failed execution with: SIGSEGV.\n");
     }
 
-    exit(0);
+    system_shutdown();
 }
 
 cterm_module_t load_module(const char *file, const char *init_function) {
     void *cmd_handler = NULL;
     char *cmd_error = NULL;
     cterm_module_t mod;
-    mod.handler = cmd_handler;
+    mod.shutdown_handler = NULL;
     mod.error = cmd_error;
     char *tmp = (char *)malloc(1024);
     sprintf(tmp, "./applications/%s", file);
     cmd_handler = dlopen(tmp, RTLD_NOW);
+    mod.handler = cmd_handler;
     free(tmp);
     cmd_error = dlerror();
     if(cmd_handler != NULL) {
@@ -105,56 +123,68 @@ cterm_module_t load_module(const char *file, const char *init_function) {
         app_init = (void (*)(cterm_t *ctrm))dlsym(cmd_handler, init_function);
         cmd_error = dlerror();
         if(cmd_error) {
-            printw("%s error: %s", file, cmd_error);
+            printf("%s error: %s", file, cmd_error);
             tmp = (char *)malloc(1024);
             sprintf(tmp, "%s error: %s\n", file, cmd_error);
             strcat(logData, tmp);
             free(tmp);
             cterm_command_reference_t logcmd = find_command("extension_logfile");
             if(logcmd.callback) logcmd.callback(logData); 
-            move(++__main_console_y, 0);
-            refresh();
             dlclose(cmd_handler);
         } else {
             (*app_init)(&cterm_info);
-            printw("* Loaded %s", file);
+            printf("* Loaded %s\n", file);
             tmp = (char *)malloc(1024);
             sprintf(tmp, "* Loaded %s\n", file);
             strcat(logData, tmp);
             free(tmp);
             cterm_command_reference_t logcmd = find_command("extension_logfile");
             if(logcmd.callback) logcmd.callback(logData); 
-            refresh();
-            move(++__main_console_y, 0);
+            mod.shutdown_handler = (void (*)())dlsym(cmd_handler, "cterm_on_shutdown");
+            cmd_error = NULL;
+            cmd_error = dlerror();
+            if(cmd_error) {
+                printf("%s error: %s", file, cmd_error);
+                tmp = (char *)malloc(1024);
+                sprintf(tmp, "%s error: %s\n", file, cmd_error);
+                strcat(logData, tmp);
+                free(tmp);
+                cterm_command_reference_t logcmd = find_command("extension_logfile");
+                if(logcmd.callback) logcmd.callback(logData); 
+            } else {
+                // mod.shutdown_handler();
+            }
+            cterm_module_t *cmt = &cterm_modules[cterm_modules_i];
+
+            cterm_modules[cterm_modules_i].error = mod.error;
+            cterm_modules[cterm_modules_i].handler = mod.handler;
+            cterm_modules[cterm_modules_i].shutdown_handler = mod.shutdown_handler;
+            cterm_modules[cterm_modules_i].name = file;
+            cterm_modules_i++;
         }
     }
+
     return mod;
 }
 
 bool __main_early() {
     logData = (char *)malloc(8 * 1024);
-    initscr();
     __main_config_parsed = cJSON_ParseWithLength(config_json_data, config_json_size);
     cJSON *entry_cterm = cJSON_GetObjectItemCaseSensitive(__main_config_parsed, "cterm");
     cterm_info.version = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(entry_cterm, "version"));
     if(!cterm_info.version) {
-        endwin();
         printf("Unable to parse CTerm config!\n");
         return false;
     }
-    printw("Reading application data...");
+    printf("Reading application data...\n");
     strcat(logData, "Reading application data...\n");
-    move(++__main_console_y, 0);
-    refresh();
     DIR *application_directory;
     struct dirent *app_directory;
     application_directory = opendir("./applications");
     if(!application_directory) {
-        endwin();
         printf("Unable to get applications!\n");
         return false;
     }
-    cterm_info.terminal_y = &__main_console_y;
     cterm_info.register_command = register_command;
     cterm_info.command_size = &total_commands;
     cterm_info.commands = (cterm_command_t *)malloc(1 * sizeof(cterm_command_t));
@@ -162,15 +192,10 @@ bool __main_early() {
     cterm_info.system_shutdown = system_shutdown;
     cterm_info.config_instance = __main_config_parsed;
     cterm_info.embedded.e_cJSON_Delete = cJSON_Delete;
-    cterm_info.embedded.e_getchar = getchar;
-    cterm_info.embedded.e_endwin = endwin;
-    cterm_info.embedded.e_move = __embed_func1;
-    cterm_info.embedded.e_printw = printw;
-    cterm_info.embedded.e_refresh = __embed_func0;
-    cterm_info.embedded.e_clear = __embed_func2;
     cterm_info.embedded.dlsym = dlsym;
-    cterm_info.embedded.e_LINES = &LINES;
-    cterm_info.embedded.e_COLS = &COLS;
+
+    cterm_modules = (cterm_module_t *)malloc((sizeof(cterm_module_t)) * 1024);
+
     while((app_directory = readdir(application_directory)) != NULL) {
         load_module(app_directory->d_name, "init");
     }
@@ -192,7 +217,7 @@ int main() {
         free(cterm_info.commands);
         return 1;
     }
-    printw("Welcome to %s\n", cterm_info.version);
+    printf("Welcome to %s\n", cterm_info.version);
     char *tmp = (char *)malloc(1024);
     sprintf(tmp, "Welcome to %s\n", cterm_info.version);
     strcat(logData, tmp);
@@ -205,30 +230,25 @@ int main() {
     inEInit = false;
     if(!linecmd.callback) {
         cJSON_Delete(__main_config_parsed);
-        endwin();
-        printf(logData);
         printf("Unable to find line command!\n");
         strcat(logData, "Unable to find line command!\n");
         cterm_command_reference_t logcmd = find_command("extension_logfile");
         if(logcmd.callback) logcmd.callback(logData); 
-        free(logData);
-        free(cterm_info.commands);
+        system_shutdown();
         return 1;
     }
     if(!linecmd.callback(&run_by_main)) {
         cJSON_Delete(__main_config_parsed);
-        endwin();
         printf("line command is crashed!\n");
         strcat(logData, "line command is crashed!\n");
         cterm_command_reference_t logcmd = find_command("extension_logfile");
         if(logcmd.callback) logcmd.callback(logData); 
-        free(logData);
-        free(cterm_info.commands);
+        system_shutdown();
         return 1;
     }
     strcat(logData, "Closing\n");
     if(logcmd.callback) logcmd.callback(logData); 
-    free(logData);
-    free(cterm_info.commands);
+
+    system_shutdown();
     return 0;
 }

@@ -11,17 +11,14 @@ bool cmd_test00(void *args) {
     binset.number = 8;
     cterm_command_reference_t ext = cterm->find("extension_int2binstr");
     if(!ext.callback) {
-        cterm->embedded.e_printw("Download Extension module before executing\nthis command!\n");
-        cterm->embedded.e_refresh();
+        printf("Download Extension module before executing\n");
         return false;
     }
     if(!ext.callback(&binset)) {
-        cterm->embedded.e_printw("Allocation is failed\n");
-        cterm->embedded.e_refresh();
+        printf("Allocation is failed\n");
         return false;
     }
-    cterm->embedded.e_printw("Int: %d | Binary: %s\n", binset.number, binset.bitSet);
-    cterm->embedded.e_refresh();
+    printf("Int: %d | Binary: %s\n", binset.number, binset.bitSet);
     free(binset.bitSet);
     free(binset.boolset);
     return true;
@@ -48,4 +45,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("cterm_tests", "Test commands", "1.2")
+SET_INFORMATION("cterm_tests", "Test commands", "1.3")

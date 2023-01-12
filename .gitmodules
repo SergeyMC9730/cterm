@@ -4,3 +4,6 @@
 [submodule "cmake-examples"]
 	path = cmake-examples
 	url = https://gitlab.com/jhamberg/cmake-examples.git
+[submodule "applications/curl"]
+	path = applications/curl
+	url = https://github.com/curl/curl.git

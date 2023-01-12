@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "./cterm_extensions.h"
+#include "./cterm_generic.h"
 
 cterm_t *cterm;
 
@@ -32,8 +33,28 @@ bool ext_get(void *args) {
     return true;
 }
 bool ext_log(void *args) {
-    remove("logs.txt");
-    FILE *logfile = fopen("logs.txt", "w");
+    if(!args) {
+        printf("Usage for extension_logfile:\n > ext_log <any string>");
+        return false;
+    }
+    
+    cterm_command_reference_t paths = cterm->find("CTERM_getdatalocation");
+    generic_datalocation pathdata;
+    bool is_user_available = false;
+
+    pathdata.etc_dir = ".";
+    
+    if(paths.callback) {
+        paths.callback(&pathdata);
+        if(!strcmp(pathdata.etc_dir, "usr/etc")) is_user_available = true;
+    }
+
+    char *buffer = (char *)malloc(128);
+    snprintf(buffer, 128, "%s/logs.txt", pathdata.etc_dir);
+
+    remove(buffer);
+
+    FILE *logfile = fopen(buffer, "w");
     fprintf(logfile, "%s", (const char *)args);
     fclose(logfile);
     return true;
@@ -46,4 +67,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("cterm_extensions", "Extensions", "1.2")
+SET_INFORMATION("cterm_extensions", "CTerm Extensions", "1.3")

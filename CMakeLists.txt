@@ -13,4 +13,4 @@ add_subdirectory(tools)
 add_executable(cterm main.c)
 
 target_compile_options(cterm PRIVATE -Wincompatible-pointer-types)
-target_link_libraries(cterm cjson ncurses dl file_embed)
+target_link_libraries(cterm cjson dl file_embed)

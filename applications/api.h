@@ -18,19 +18,13 @@ typedef struct {
 } cterm_command_reference_t;
 typedef struct {
     void (*e_cJSON_Delete)(void *item);
-    int (*e_printw)(const char *format, ...);
-    int (*e_refresh)(void);
-    int (*e_move)(int y, int x);
-    int (*e_endwin)(void);
-    int (*e_getchar)(void);
-    int (*e_clear)(void);
     void *(*dlsym)(void *handler, const char *name);
-    int *e_LINES;
-    int *e_COLS;
 } cterm_embed_t;
 typedef struct {
     void *handler;
+    void (*shutdown_handler)();
     char *error;
+    char *name;
 } cterm_module_t;
 typedef struct {
     void (*log)(const char *format, ...);
