@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <unistd.h>
+#include <pthread.h> 
 #include "config_json.h"
 
 cJSON *__main_config_parsed;
@@ -204,7 +205,10 @@ bool __main_early() {
 
 uint8_t run_by_main = 128;
 
-int _cterm_init() {
+bool _cterm_closed = false;
+int _cterm_result = 0;
+
+void _cterm_start(void *vargp) {
     inEInit = true;
 
     struct sigaction csigsegv;
@@ -215,7 +219,9 @@ int _cterm_init() {
 
     if(!__main_early()) {
         free(cterm_info.commands);
-        return 1;
+        _cterm_closed = true;
+        _cterm_result = 1;
+        return;
     }
     printf("Welcome to %s\n", cterm_info.version);
     char *tmp = (char *)malloc(1024);
@@ -235,7 +241,9 @@ int _cterm_init() {
         cterm_command_reference_t logcmd = find_command("extension_logfile");
         if(logcmd.callback) logcmd.callback(logData); 
         system_shutdown();
-        return 1;
+        _cterm_closed = true;
+        _cterm_result = 1;
+        return;
     }
     if(!linecmd.callback(&run_by_main)) {
         cJSON_Delete(__main_config_parsed);
@@ -244,11 +252,24 @@ int _cterm_init() {
         cterm_command_reference_t logcmd = find_command("extension_logfile");
         if(logcmd.callback) logcmd.callback(logData); 
         system_shutdown();
-        return 1;
+        _cterm_closed = true;
+        _cterm_result = 1;
+        return;
     }
     strcat(logData, "Closing\n");
     if(logcmd.callback) logcmd.callback(logData); 
 
     system_shutdown();
+    _cterm_closed = true;
+    _cterm_result = 0;
+    return;
+}
+
+int _cterm_init() {
+    pthread_t cterm_thread;
+
+    pthread_create(&cterm_thread, NULL, _cterm_start, NULL);
+    pthread_detach(cterm_thread);
+    
     return 0;
 }

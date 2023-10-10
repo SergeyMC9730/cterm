@@ -10,6 +10,7 @@
         "deque": "c",
         "api.h": "c",
         "main.h": "c",
-        "cjson.h": "c"
+        "cjson.h": "c",
+        "errno.h": "c"
     }
 }
