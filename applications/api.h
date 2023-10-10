@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <curses.h>
 
-#pragma pack(1)
+#pragma pack(push, 1)
 typedef struct {
     bool (* callback)(void *custom);
     char *command;
@@ -41,6 +41,6 @@ typedef struct {
     void *config_instance;
     cterm_embed_t embedded;
 } cterm_t;
-#pragma pop()
+#pragma pack(pop)
 
 #define SET_INFORMATION(name, description, version) const char *get_module_name() { return name; } const char *get_module_description() { return description; } const char *get_module_version() { return version; }

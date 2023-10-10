@@ -10,7 +10,11 @@ include_directories(cJSON)
 add_subdirectory(applications)
 add_subdirectory(tools)
 
-add_executable(cterm main.c)
+add_library(cterm cterm.c)
+
+add_executable(cterm_loader main.c)
 
 target_compile_options(cterm PRIVATE -Wincompatible-pointer-types)
 target_link_libraries(cterm cjson dl file_embed)
+
+target_link_libraries(cterm_loader cterm)

@@ -4,6 +4,8 @@
 #include "./cterm_extensions.h"
 #include "./cterm_generic.h"
 
+#include <string.h>
+
 cterm_t *cterm;
 
 bool ext_get(void *args) {
@@ -67,4 +69,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("cterm_extensions", "CTerm Extensions", "1.3")
+SET_INFORMATION("cterm_extensions", "CTerm Extensions", "1.31")

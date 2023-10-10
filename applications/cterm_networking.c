@@ -22,7 +22,9 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t written = fwrite(ptr, size, nmemb, stream);
     return written;
 }
-bool api_get(networking_get *args) {
+bool api_get(void *args_1) {
+    networking_get *args = (networking_get *)args_1;
+
     if(!args) {
         printf("Arguments are not provided!\n");
         return false;
@@ -52,6 +54,7 @@ bool api_get(networking_get *args) {
 
         if(args->curl_result != CURLE_OK) {
             if(!args->is_api) printf("Cannot access %s: %s\n", args->url, curl_easy_strerror(args->curl_result));
+            if (fp) fclose(fp);
             return false;
         }
 
@@ -59,7 +62,7 @@ bool api_get(networking_get *args) {
         curl_easy_getinfo(curl_instance, CURLINFO_RESPONSE_CODE, &httpStatus);
         if(!args->is_api) printf("Got HTTP status: %d\n", httpStatus);
 
-        fclose(fp);
+        if (fp) fclose(fp);
         if(!args->move_to_file) remove(path);
         free(path);
 
@@ -94,7 +97,9 @@ char *filter_argument(char *data) {
 
     return data;
 }
-bool cmd_get(char *args) {
+bool cmd_get(void *args_1) {
+    char *args = (char *)args;
+
     if(!args) goto failure;
 
     networking_get ng = {};
@@ -128,4 +133,4 @@ void cterm_on_shutdown() {
     curl_global_cleanup();
 }
 
-SET_INFORMATION("cterm_networking", "Basic networking commands", "1.3")
+SET_INFORMATION("cterm_networking", "Basic networking commands", "1.31")

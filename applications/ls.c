@@ -5,6 +5,7 @@
 #include "./cterm_generic.h"
 #include <stdlib.h>
 #include <dirent.h>
+#include <string.h>
 
 cterm_t *cterm;
 
@@ -60,4 +61,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("ls", "List directory", "1.3")
+SET_INFORMATION("ls", "List directory", "1.31")
