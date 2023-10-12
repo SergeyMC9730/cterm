@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <unistd.h>
+#include <stdio.h>
 
 cterm_t *cterm;
 
@@ -11,7 +12,7 @@ bool cmd_pwd(void *args) {
     char *buffer = (char *)malloc(1024);
 
     getcwd(buffer, 1024);
-    printf("%s\n", buffer);
+    printf("%s\n", (const char *)buffer);
 
     free(buffer);
     
@@ -26,4 +27,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("pwd", "Gets current directory", "1.3")
+SET_INFORMATION("pwd", "Gets current directory", "1.33")

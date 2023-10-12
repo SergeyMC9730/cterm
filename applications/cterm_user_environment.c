@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <limits.h>
 #include <unistd.h>
+#include <stdio.h>
 
 cterm_t *cterm;
 
@@ -42,4 +43,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("cterm_user_environment", "Creates main system directories", "1.3")
+SET_INFORMATION("cterm_user_environment", "Creates main system directories", "1.33")

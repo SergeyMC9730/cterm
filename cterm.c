@@ -97,7 +97,7 @@ void system_shutdown() {
     exit(0);
 }
 
-void critical_sigsegv(int sig, siginfo_t *si, void *unused) {
+void critical_sigsegv(int sig) {
     if(!inEInit) {
         printf("\nExternal CTerm module failed execution with: SIGSEGV.\n");
     } else {
@@ -160,7 +160,7 @@ cterm_module_t load_module(const char *file, const char *init_function) {
             cterm_modules[cterm_modules_i].error = mod.error;
             cterm_modules[cterm_modules_i].handler = mod.handler;
             cterm_modules[cterm_modules_i].shutdown_handler = mod.shutdown_handler;
-            cterm_modules[cterm_modules_i].name = file;
+            cterm_modules[cterm_modules_i].name = (char *)file;
             cterm_modules_i++;
         }
     }
@@ -192,7 +192,7 @@ bool __main_early() {
     cterm_info.find = find_command;
     cterm_info.system_shutdown = system_shutdown;
     cterm_info.config_instance = __main_config_parsed;
-    cterm_info.embedded.e_cJSON_Delete = cJSON_Delete;
+    // cterm_info.embedded.e_cJSON_Delete = cJSON_Delete;
     cterm_info.embedded.dlsym = dlsym;
 
     cterm_modules = (cterm_module_t *)malloc((sizeof(cterm_module_t)) * 1024);
@@ -208,7 +208,7 @@ uint8_t run_by_main = 128;
 bool _cterm_closed = false;
 int _cterm_result = 0;
 
-void _cterm_start(void *vargp) {
+void *_cterm_start(void *vargp) {
     inEInit = true;
 
     struct sigaction csigsegv;
@@ -221,7 +221,7 @@ void _cterm_start(void *vargp) {
         free(cterm_info.commands);
         _cterm_closed = true;
         _cterm_result = 1;
-        return;
+        return NULL;
     }
     printf("Welcome to %s\n", cterm_info.version);
     char *tmp = (char *)malloc(1024);
@@ -243,7 +243,7 @@ void _cterm_start(void *vargp) {
         system_shutdown();
         _cterm_closed = true;
         _cterm_result = 1;
-        return;
+        return NULL;
     }
     if(!linecmd.callback(&run_by_main)) {
         cJSON_Delete(__main_config_parsed);
@@ -254,7 +254,7 @@ void _cterm_start(void *vargp) {
         system_shutdown();
         _cterm_closed = true;
         _cterm_result = 1;
-        return;
+        return NULL;
     }
     strcat(logData, "Closing\n");
     if(logcmd.callback) logcmd.callback(logData); 
@@ -262,7 +262,7 @@ void _cterm_start(void *vargp) {
     system_shutdown();
     _cterm_closed = true;
     _cterm_result = 0;
-    return;
+    return NULL;
 }
 
 int _cterm_init() {

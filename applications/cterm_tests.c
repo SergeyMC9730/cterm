@@ -2,6 +2,8 @@
 #include "./cterm_extensions.h"
 #include <stdlib.h>
 
+#include <stdio.h>
+
 cterm_t *cterm;
 
 bool cmd_test00(void *args) {
@@ -15,7 +17,7 @@ bool cmd_test00(void *args) {
         return false;
     }
     if(!ext.callback(&binset)) {
-        printf("Allocation is failed\n");
+        printf("Allocation failed\n");
         return false;
     }
     printf("Int: %d | Binary: %s\n", binset.number, binset.bitSet);
@@ -45,4 +47,4 @@ void init(cterm_t *info) {
     return;
 }
 
-SET_INFORMATION("cterm_tests", "Test commands", "1.3")
+SET_INFORMATION("cterm_tests", "Test commands", "1.33")

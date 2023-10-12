@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdbool.h>
-#include <curses.h>
 
 #pragma pack(push, 1)
 typedef struct {
@@ -17,7 +16,6 @@ typedef struct {
     bool *helpHide;
 } cterm_command_reference_t;
 typedef struct {
-    void (*e_cJSON_Delete)(void *item);
     void *(*dlsym)(void *handler, const char *name);
 } cterm_embed_t;
 typedef struct {
