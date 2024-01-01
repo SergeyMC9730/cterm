@@ -123,7 +123,7 @@ cterm_module_t load_module(const char *file, const char *init_function) {
         void (*app_init)(cterm_t *ctrm);
         app_init = (void (*)(cterm_t *ctrm))dlsym(cmd_handler, init_function);
         cmd_error = dlerror();
-        if(cmd_error) {
+        if(cmd_error || app_init == NULL) {
             printf("%s error: %s", file, cmd_error);
             tmp = (char *)malloc(1024);
             sprintf(tmp, "%s error: %s\n", file, cmd_error);
@@ -133,7 +133,8 @@ cterm_module_t load_module(const char *file, const char *init_function) {
             if(logcmd.callback) logcmd.callback(logData); 
             dlclose(cmd_handler);
         } else {
-            (*app_init)(&cterm_info);
+            // (*app_init)(&cterm_info);
+            app_init(&cterm_info);
             printf("* Loaded %s\n", file);
             tmp = (char *)malloc(1024);
             sprintf(tmp, "* Loaded %s\n", file);
@@ -163,6 +164,14 @@ cterm_module_t load_module(const char *file, const char *init_function) {
             cterm_modules[cterm_modules_i].name = (char *)file;
             cterm_modules_i++;
         }
+    } else {
+        printf("error: invalid handler for %s; %s", file, cmd_error);
+        tmp = (char *)malloc(1024);
+        sprintf(tmp, "error: invalid handler for %s: %s\n", file, cmd_error);
+        strcat(logData, tmp);
+        free(tmp);
+        cterm_command_reference_t logcmd = find_command("extension_logfile");
+        if(logcmd.callback) logcmd.callback(logData); 
     }
 
     return mod;

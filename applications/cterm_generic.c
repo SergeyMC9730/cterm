@@ -29,6 +29,55 @@ void filter_command(char *data) {
 
     return;
 }
+bool cmd_line_api_execute(void *args) {
+    const char *str = (const char *)args;
+
+    if (str[0] == 0x0A) {
+        return true;
+    }
+
+    char *buffer = (char *)malloc(2048);
+    memset(buffer, 0, 2048);
+
+    strncpy(buffer, str, 2048);
+
+    char *requested_command = strtok(buffer, " ");
+
+    int max_argument_list_size = 256;
+
+    size_t sz = sizeof(char *) * (max_argument_list_size + 1);
+
+    char **arguments = (char **)malloc(sz);
+    memset(arguments, 0, sz);
+
+    for (int i = 1; i < max_argument_list_size - 1; i++) {
+        char *str_arg = strtok(NULL, " ");
+
+        if (str_arg == NULL) break;
+        
+        arguments[i] = str_arg;
+    }
+
+    filter_command(requested_command);
+    cterm_command_reference_t cmd = cterm->find(requested_command);
+    
+    if(!cmd.callback) {
+        printf("Command not found!\n");
+
+        free(buffer);
+        free(arguments);
+
+        return false;
+    }
+
+    bool res = cmd.callback(arguments);
+
+    free(buffer);
+    free(arguments);
+
+    return res;
+}
+
 bool cmd_line(void *args) {
     bool in_stack_mode = false;
     char stackl = 'A' + (rand() % 26);
@@ -42,21 +91,14 @@ bool cmd_line(void *args) {
     start:
     if(buffer) free(buffer);
     buffer = (char *)malloc(2048);
+    memset(buffer, 0, 2048);
 
     printf("%c%c%c> ", (in_stack_mode) ? stackl : 0, (execution_error) ? '!' : 0, (in_stack_mode || execution_error) ? ' ' : 0);
     fgets(buffer, 2048, stdin);
 
-    char *requested_command = strtok(buffer, " ");
-    filter_command(requested_command);
-    cterm_command_reference_t cmd = cterm->find(requested_command);
-    
-    if(!cmd.callback) {
-        printf("Command not found!\n");
-        goto start;
-    }
+    execution_error = !cmd_line_api_execute(buffer);
 
-    execution_error = !cmd.callback(buffer);
-    if(!should_exit) goto start;
+    goto start;
 
     should_exit = false;
 
@@ -123,7 +165,8 @@ void init(cterm_t *info) {
     info->register_command("info", "CTerm information", false, cmd_info);
     info->register_command("help", "Help Command", false, cmd_help);
     info->register_command("CTERM_getdatalocation", "Gets main system directory paths", true, api_getdatalocation);
+    info->register_command("CTERM_line_execute", "Execute command", true, cmd_line_api_execute);
     return;
 }
 
-SET_INFORMATION("cterm_generic", "CTerm basic commands", "1.3")
+SET_INFORMATION("cterm_generic", "CTerm basic commands", "1.31")

@@ -75,7 +75,7 @@ bool api_get(void *args_1) {
 void print_usage(int type) {
     switch(type) {
         case 0: {
-            printf("Usage for get command:\n > get <url> <filename (optional>\nIf filename is not set, file data will be printed to terminal.\n");
+            printf("Usage for get command:\n > get <url> <filename (optional)>\nIf filename is not set, file data will be printed to terminal.\n");
             break;
         }
     }
@@ -98,19 +98,17 @@ char *filter_argument(char *data) {
     return data;
 }
 bool cmd_get(void *args_1) {
-    char *args = (char *)args;
+    char **args = (char **)args_1;
 
-    if(!args) goto failure;
+    // printf("args[0] = %s; args[1] = %s\n", args[0], args[1]);
+
+    if(!args || args[1] == NULL) goto failure;
 
     networking_get ng = {};
-
-    ng.url = filter_argument(strtok(NULL, " "));
-    if(!ng.url) goto failure;
-
-    ng.filename = filter_argument(strtok(NULL, " "));
-    ng.move_to_file = true;
-    if(!ng.filename) ng.move_to_file = false;
-
+    
+    ng.url = filter_argument(args[1]);
+    ng.filename = filter_argument(args[2]);
+    ng.move_to_file = (ng.filename != NULL);
     ng.is_api = false;
 
     return api_get(&ng);
@@ -133,4 +131,4 @@ void cterm_on_shutdown() {
     curl_global_cleanup();
 }
 
-SET_INFORMATION("cterm_networking", "Basic networking commands", "1.31")
+SET_INFORMATION("cterm_networking", "Basic networking commands", "1.32")
