@@ -43,6 +43,8 @@ cterm_command_reference_t find_command(char *command) {
     return found0;
 }
 void register_command(char *command, char *helpdesc, bool helpHide, bool (*callback)(void *args)) {
+    cterm_command_reference_t refcmd = find_command(command);
+    if (refcmd.callback) return;
     total_commands++;
     cterm_info.commands = (cterm_command_t *)realloc(cterm_info.commands, total_commands * sizeof(cterm_command_t));
     cterm_info.commands[total_commands - 1].command = command;
